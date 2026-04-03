@@ -1,18 +1,17 @@
 // ==========================================
-// Missing Dog Tobias - Clue Tracker App
+// Tobias Encontrado! - Clue Tracker App
 // Cross-device persistence via Firebase Realtime Database
 // ==========================================
 
 const FIREBASE_DB = 'https://cade-tobias-default-rtdb.firebaseio.com';
 const DB_PATH = '/missing-dog/sightings';
 
-// BRT Praça do Bandolim, Curicica coordinates
-const LAST_SEEN_LAT = -22.9483;
-const LAST_SEEN_LNG = -43.3575;
+// BRT Praça do Bandolim, Curicica — corrected coordinates
+const LAST_SEEN_LAT = -22.9347;
+const LAST_SEEN_LNG = -43.3537;
 
 // State
 let map;
-let tempMarker = null;
 let sightingMarkers = [];
 
 // ---- Firebase Realtime Database (REST API) ----
@@ -23,31 +22,12 @@ async function loadSightings() {
         if (!res.ok) throw new Error('Firebase error');
         const data = await res.json();
         if (!data) return [];
-        // Firebase returns an object with keys; convert to sorted array
         return Object.entries(data)
             .map(([key, val]) => ({ ...val, firebaseKey: key }))
             .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     } catch (err) {
         console.error('Erro ao carregar pistas:', err);
         return [];
-    }
-}
-
-async function addSighting(sighting) {
-    sighting.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    sighting.createdAt = new Date().toISOString();
-    try {
-        const res = await fetch(`${FIREBASE_DB}${DB_PATH}.json`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(sighting),
-        });
-        if (!res.ok) throw new Error('Firebase error');
-        return sighting;
-    } catch (err) {
-        console.error('Erro ao salvar pista:', err);
-        showToast('Erro ao salvar. Tente novamente.');
-        return null;
     }
 }
 
@@ -61,11 +41,11 @@ function initMap() {
         maxZoom: 19
     }).addTo(map);
 
-    // Last seen marker (special)
+    // Last seen marker
     const lastSeenIcon = L.divIcon({
         className: 'last-seen-marker',
         html: `<div style="
-            background: #d32f2f;
+            background: #2e7d32;
             color: white;
             padding: 6px 12px;
             border-radius: 8px;
@@ -74,54 +54,14 @@ function initMap() {
             white-space: nowrap;
             box-shadow: 0 2px 8px rgba(0,0,0,0.3);
             text-align: center;
-        ">Visto pela última vez<br><small>BRT Praça do Bandolim</small></div>`,
-        iconSize: [180, 50],
-        iconAnchor: [90, 50]
+        ">Encontrado!<br><small>BRT Praça do Bandolim</small></div>`,
+        iconSize: [160, 50],
+        iconAnchor: [80, 50]
     });
 
     L.marker([LAST_SEEN_LAT, LAST_SEEN_LNG], { icon: lastSeenIcon })
         .addTo(map)
-        .bindPopup('<b>Último local visto</b><br>BRT Praça do Bandolim, Curicica');
-
-    // Click to add sighting
-    map.on('click', onMapClick);
-}
-
-function onMapClick(e) {
-    const { lat, lng } = e.latlng;
-
-    if (tempMarker) {
-        map.removeLayer(tempMarker);
-    }
-
-    tempMarker = L.marker([lat, lng], {
-        icon: L.divIcon({
-            className: 'temp-marker',
-            html: `<div style="
-                background: #ff9800;
-                color: white;
-                width: 30px;
-                height: 30px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 18px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-                border: 3px solid white;
-            ">+</div>`,
-            iconSize: [30, 30],
-            iconAnchor: [15, 15]
-        })
-    }).addTo(map);
-
-    document.getElementById('sighting-lat').value = lat;
-    document.getElementById('sighting-lng').value = lng;
-    document.getElementById('sighting-date').value = new Date().toISOString().split('T')[0];
-
-    const form = document.getElementById('sighting-form');
-    form.classList.remove('hidden');
-    form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        .bindPopup('<b>Tobias foi encontrado!</b><br>BRT Praça do Bandolim, Curicica');
 }
 
 function createSightingIcon(index) {
@@ -157,7 +97,7 @@ async function renderSightingsOnMap() {
             icon: createSightingIcon(i + 1)
         }).addTo(map);
 
-        const dateStr = formatDate(s.sightingDate, s.sightingTime);
+        const dateStr = formatDate(s.sightingDate);
         marker.bindPopup(`
             <b>${escapeHtml(s.name)}</b><br>
             <small>${dateStr}</small><br>
@@ -175,12 +115,12 @@ async function renderCluesList() {
     const sightings = await loadSightings();
 
     if (sightings.length === 0) {
-        container.innerHTML = '<p class="no-clues">Nenhuma pista registrada ainda. Seja o primeiro a ajudar!</p>';
+        container.innerHTML = '<p class="no-clues">Nenhuma pista registrada.</p>';
         return;
     }
 
     container.innerHTML = sightings.map((s, i) => {
-        const dateStr = formatDate(s.sightingDate, s.sightingTime);
+        const dateStr = formatDate(s.sightingDate);
         return `
             <div class="clue-card">
                 <div class="clue-header">
@@ -200,57 +140,18 @@ function flyToSighting(lat, lng) {
     map.flyTo([lat, lng], 17, { duration: 1 });
 }
 
-// ---- Form Handling ----
+// ---- Helpers ----
 
-function initForm() {
-    const form = document.getElementById('clue-form');
-    const cancelBtn = document.getElementById('cancel-sighting');
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
 
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-
-        const submitBtn = form.querySelector('.btn-primary');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Enviando...';
-
-        const sighting = {
-            name: document.getElementById('reporter-name').value.trim(),
-            sightingDate: document.getElementById('sighting-date').value,
-            sightingTime: document.getElementById('sighting-time').value,
-            description: document.getElementById('sighting-description').value.trim(),
-            lat: parseFloat(document.getElementById('sighting-lat').value),
-            lng: parseFloat(document.getElementById('sighting-lng').value)
-        };
-
-        const result = await addSighting(sighting);
-
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Enviar Pista';
-
-        if (!result) return;
-
-        if (tempMarker) {
-            map.removeLayer(tempMarker);
-            tempMarker = null;
-        }
-
-        form.reset();
-        document.getElementById('sighting-form').classList.add('hidden');
-
-        await renderSightingsOnMap();
-        await renderCluesList();
-
-        showToast('Pista registrada com sucesso! Obrigado por ajudar!');
-    });
-
-    cancelBtn.addEventListener('click', function() {
-        if (tempMarker) {
-            map.removeLayer(tempMarker);
-            tempMarker = null;
-        }
-        form.reset();
-        document.getElementById('sighting-form').classList.add('hidden');
-    });
+function formatDate(dateStr) {
+    if (!dateStr) return 'Data não informada';
+    const parts = dateStr.split('-');
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
 }
 
 // ---- Toast Notification ----
@@ -277,37 +178,13 @@ function showToast(message) {
     setTimeout(() => {
         toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 400);
-    }, 400);
+    }, 3000);
 }
-
-// ---- Helpers ----
-
-function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-}
-
-function formatDate(dateStr, timeStr) {
-    if (!dateStr) return 'Data não informada';
-    const parts = dateStr.split('-');
-    let result = `${parts[2]}/${parts[1]}/${parts[0]}`;
-    if (timeStr) result += ` às ${timeStr}`;
-    return result;
-}
-
-// ---- Auto-refresh (sync from other devices) ----
-
-setInterval(async () => {
-    await renderSightingsOnMap();
-    await renderCluesList();
-}, 30000);
 
 // ---- Init ----
 
 document.addEventListener('DOMContentLoaded', async function() {
     initMap();
-    initForm();
     await renderSightingsOnMap();
     await renderCluesList();
 });

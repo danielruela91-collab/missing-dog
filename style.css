@@ -6,17 +6,21 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
-    background: #f5f5f5;
-    color: #333;
+    background: #121212;
+    color: #e0e0e0;
     line-height: 1.6;
 }
 
 /* Header */
 .header {
-    background: linear-gradient(135deg, #d32f2f, #b71c1c);
+    background: linear-gradient(135deg, #b71c1c, #880e0e);
     color: white;
     text-align: center;
     padding: 2rem 1rem;
+}
+
+.header.found {
+    background: linear-gradient(135deg, #2e7d32, #1b5e20);
 }
 
 .alert-badge {
@@ -30,6 +34,20 @@ body {
     letter-spacing: 3px;
     margin-bottom: 0.8rem;
     animation: pulse 2s infinite;
+}
+
+.alert-badge.found {
+    color: #2e7d32;
+}
+
+.found-text {
+    color: #4caf50 !important;
+    font-size: 1.2rem !important;
+}
+
+.found-plea {
+    background: #1a2e1a !important;
+    border-left-color: #4caf50 !important;
 }
 
 @keyframes pulse {
@@ -56,10 +74,10 @@ body {
 
 /* Photo Card */
 .photo-card {
-    background: white;
+    background: #1e1e1e;
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.4);
     margin-bottom: 1.5rem;
     text-align: center;
 }
@@ -73,16 +91,16 @@ body {
 .photo-caption {
     padding: 1rem;
     font-size: 1rem;
-    color: #444;
-    background: #fff8e1;
+    color: #ccc;
+    background: #2a2a2a;
 }
 
 /* Info Card */
 .info-card {
-    background: white;
+    background: #1e1e1e;
     border-radius: 12px;
     padding: 1.5rem;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.4);
     margin-bottom: 1.5rem;
 }
 
@@ -109,7 +127,7 @@ body {
 .info-value {
     font-size: 1.1rem;
     font-weight: 600;
-    color: #222;
+    color: #e0e0e0;
 }
 
 .info-value a {
@@ -122,11 +140,12 @@ body {
 }
 
 .plea {
-    background: #fff3e0;
+    background: #2a1f00;
     border-left: 4px solid #ff9800;
     padding: 1rem;
     border-radius: 0 8px 8px 0;
     font-size: 0.95rem;
+    color: #ddd;
 }
 
 /* Map */
@@ -136,11 +155,12 @@ body {
 
 .map-section h2 {
     margin-bottom: 0.3rem;
+    color: #e0e0e0;
 }
 
 .map-instructions {
     font-size: 0.9rem;
-    color: #666;
+    color: #999;
     margin-bottom: 0.8rem;
 }
 
@@ -148,16 +168,16 @@ body {
     width: 100%;
     height: 450px;
     border-radius: 12px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.4);
     z-index: 1;
 }
 
 /* Sighting Form */
 .sighting-form {
-    background: white;
+    background: #1e1e1e;
     border-radius: 12px;
     padding: 1.5rem;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.4);
     margin-bottom: 1.5rem;
     border: 2px solid #d32f2f;
 }
@@ -167,7 +187,7 @@ body {
 }
 
 .sighting-form h3 {
-    color: #d32f2f;
+    color: #ef5350;
     margin-bottom: 1rem;
 }
 
@@ -180,23 +200,31 @@ body {
     font-weight: 600;
     margin-bottom: 0.3rem;
     font-size: 0.9rem;
+    color: #ccc;
 }
 
 .form-group input,
 .form-group textarea {
     width: 100%;
     padding: 0.6rem 0.8rem;
-    border: 1px solid #ddd;
+    border: 1px solid #444;
     border-radius: 8px;
     font-size: 1rem;
     font-family: inherit;
+    background: #2a2a2a;
+    color: #e0e0e0;
     transition: border-color 0.2s;
 }
 
 .form-group input:focus,
 .form-group textarea:focus {
     outline: none;
-    border-color: #d32f2f;
+    border-color: #ef5350;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: #777;
 }
 
 .form-actions {
@@ -228,12 +256,12 @@ body {
 }
 
 .btn-secondary {
-    background: #e0e0e0;
-    color: #333;
+    background: #333;
+    color: #ccc;
 }
 
 .btn-secondary:hover {
-    background: #ccc;
+    background: #444;
 }
 
 /* Clues Section */
@@ -243,22 +271,23 @@ body {
 
 .clues-section h2 {
     margin-bottom: 1rem;
+    color: #e0e0e0;
 }
 
 .no-clues {
     text-align: center;
-    color: #999;
+    color: #777;
     padding: 2rem;
-    background: white;
+    background: #1e1e1e;
     border-radius: 12px;
 }
 
 .clue-card {
-    background: white;
+    background: #1e1e1e;
     border-radius: 12px;
     padding: 1.2rem;
     margin-bottom: 0.8rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     border-left: 4px solid #d32f2f;
 }
 
@@ -271,17 +300,17 @@ body {
 
 .clue-author {
     font-weight: 700;
-    color: #222;
+    color: #e0e0e0;
 }
 
 .clue-date {
     font-size: 0.8rem;
-    color: #999;
+    color: #888;
 }
 
 .clue-description {
     font-size: 0.95rem;
-    color: #444;
+    color: #bbb;
     margin-bottom: 0.4rem;
 }
 
@@ -292,7 +321,7 @@ body {
 }
 
 .clue-location:hover {
-    color: #d32f2f;
+    color: #ef5350;
     text-decoration: underline;
 }
 
@@ -308,7 +337,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
     z-index: 1000;
     transition: transform 0.2s, box-shadow 0.2s;
     text-decoration: none;
@@ -316,14 +345,14 @@ body {
 
 .whatsapp-float:hover {
     transform: scale(1.1);
-    box-shadow: 0 6px 24px rgba(0,0,0,0.3);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.5);
 }
 
 /* Footer */
 footer {
     text-align: center;
     padding: 1.5rem;
-    color: #999;
+    color: #666;
     font-size: 0.9rem;
 }
 
