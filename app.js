@@ -1,10 +1,10 @@
 // ==========================================
 // Missing Dog Tobias - Clue Tracker App
-// Cross-device persistence via API + localStorage fallback
+// Cross-device persistence via Firebase Realtime Database
 // ==========================================
 
-const STORAGE_KEY = 'tobias_sightings';
-const API_URL = '/api/sightings';
+const FIREBASE_DB = 'https://cade-tobias-default-rtdb.firebaseio.com';
+const DB_PATH = '/missing-dog/sightings';
 
 // BRT Praça do Bandolim, Curicica coordinates
 const LAST_SEEN_LAT = -22.9483;
@@ -14,54 +14,41 @@ const LAST_SEEN_LNG = -43.3575;
 let map;
 let tempMarker = null;
 let sightingMarkers = [];
-let useApi = true;
 
-// ---- Persistence (API with localStorage fallback) ----
+// ---- Firebase Realtime Database (REST API) ----
 
 async function loadSightings() {
-    if (useApi) {
-        try {
-            const res = await fetch(API_URL);
-            if (!res.ok) throw new Error('API error');
-            const data = await res.json();
-            // Cache in localStorage
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-            return data;
-        } catch {
-            useApi = false;
-            console.warn('API indisponível, usando armazenamento local.');
-        }
-    }
     try {
-        const data = localStorage.getItem(STORAGE_KEY);
-        return data ? JSON.parse(data) : [];
-    } catch {
+        const res = await fetch(`${FIREBASE_DB}${DB_PATH}.json`);
+        if (!res.ok) throw new Error('Firebase error');
+        const data = await res.json();
+        if (!data) return [];
+        // Firebase returns an object with keys; convert to sorted array
+        return Object.entries(data)
+            .map(([key, val]) => ({ ...val, firebaseKey: key }))
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } catch (err) {
+        console.error('Erro ao carregar pistas:', err);
         return [];
     }
 }
 
 async function addSighting(sighting) {
-    if (useApi) {
-        try {
-            const res = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(sighting),
-            });
-            if (!res.ok) throw new Error('API error');
-            return await res.json();
-        } catch {
-            useApi = false;
-            console.warn('API indisponível, salvando localmente.');
-        }
-    }
-    // Fallback to localStorage
-    const sightings = await loadSightings();
     sighting.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     sighting.createdAt = new Date().toISOString();
-    sightings.unshift(sighting);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sightings));
-    return sighting;
+    try {
+        const res = await fetch(`${FIREBASE_DB}${DB_PATH}.json`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(sighting),
+        });
+        if (!res.ok) throw new Error('Firebase error');
+        return sighting;
+    } catch (err) {
+        console.error('Erro ao salvar pista:', err);
+        showToast('Erro ao salvar. Tente novamente.');
+        return null;
+    }
 }
 
 // ---- Map Setup ----
@@ -103,12 +90,10 @@ function initMap() {
 function onMapClick(e) {
     const { lat, lng } = e.latlng;
 
-    // Remove previous temp marker
     if (tempMarker) {
         map.removeLayer(tempMarker);
     }
 
-    // Add temp marker
     tempMarker = L.marker([lat, lng], {
         icon: L.divIcon({
             className: 'temp-marker',
@@ -130,7 +115,6 @@ function onMapClick(e) {
         })
     }).addTo(map);
 
-    // Show form
     document.getElementById('sighting-lat').value = lat;
     document.getElementById('sighting-lng').value = lng;
     document.getElementById('sighting-date').value = new Date().toISOString().split('T')[0];
@@ -163,7 +147,6 @@ function createSightingIcon(index) {
 }
 
 async function renderSightingsOnMap() {
-    // Clear existing markers
     sightingMarkers.forEach(m => map.removeLayer(m));
     sightingMarkers = [];
 
@@ -239,25 +222,24 @@ function initForm() {
             lng: parseFloat(document.getElementById('sighting-lng').value)
         };
 
-        await addSighting(sighting);
+        const result = await addSighting(sighting);
 
-        // Clear temp marker
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Enviar Pista';
+
+        if (!result) return;
+
         if (tempMarker) {
             map.removeLayer(tempMarker);
             tempMarker = null;
         }
 
-        // Reset form
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Enviar Pista';
         form.reset();
         document.getElementById('sighting-form').classList.add('hidden');
 
-        // Re-render
         await renderSightingsOnMap();
         await renderCluesList();
 
-        // Show confirmation
         showToast('Pista registrada com sucesso! Obrigado por ajudar!');
     });
 
@@ -295,7 +277,7 @@ function showToast(message) {
     setTimeout(() => {
         toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 400);
-    }, 3000);
+    }, 400);
 }
 
 // ---- Helpers ----
@@ -314,23 +296,12 @@ function formatDate(dateStr, timeStr) {
     return result;
 }
 
-// ---- Cross-tab sync (fallback for same browser) ----
-
-window.addEventListener('storage', function(e) {
-    if (e.key === STORAGE_KEY) {
-        renderSightingsOnMap();
-        renderCluesList();
-    }
-});
-
-// ---- Auto-refresh (poll for new sightings from other devices) ----
+// ---- Auto-refresh (sync from other devices) ----
 
 setInterval(async () => {
-    if (useApi) {
-        await renderSightingsOnMap();
-        await renderCluesList();
-    }
-}, 30000); // Refresh every 30 seconds
+    await renderSightingsOnMap();
+    await renderCluesList();
+}, 30000);
 
 // ---- Init ----
 

@@ -2,8 +2,5 @@
   "name": "cade-tobias",
   "version": 2,
   "framework": null,
-  "cleanUrls": true,
-  "rewrites": [
-    { "source": "/api/sightings", "destination": "/api/sightings" }
-  ]
+  "cleanUrls": true
 }
