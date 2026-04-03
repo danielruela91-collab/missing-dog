@@ -54,6 +54,29 @@ body {
     padding: 1.5rem 1rem;
 }
 
+/* Photo Card */
+.photo-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.dog-photo {
+    width: 100%;
+    max-height: 500px;
+    object-fit: cover;
+}
+
+.photo-caption {
+    padding: 1rem;
+    font-size: 1rem;
+    color: #444;
+    background: #fff8e1;
+}
+
 /* Info Card */
 .info-card {
     background: white;

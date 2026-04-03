@@ -1,8 +1,9 @@
 {
   "name": "cade-tobias",
   "version": 2,
-  "buildCommand": null,
-  "outputDirectory": ".",
   "framework": null,
-  "cleanUrls": true
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/api/sightings", "destination": "/api/sightings" }
+  ]
 }

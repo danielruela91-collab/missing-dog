@@ -1,8 +1,10 @@
 // ==========================================
 // Missing Dog Tobias - Clue Tracker App
+// Cross-device persistence via API + localStorage fallback
 // ==========================================
 
 const STORAGE_KEY = 'tobias_sightings';
+const API_URL = '/api/sightings';
 
 // BRT Praça do Bandolim, Curicica coordinates
 const LAST_SEEN_LAT = -22.9483;
@@ -12,10 +14,24 @@ const LAST_SEEN_LNG = -43.3575;
 let map;
 let tempMarker = null;
 let sightingMarkers = [];
+let useApi = true;
 
-// ---- Persistence (localStorage, shared across tabs) ----
+// ---- Persistence (API with localStorage fallback) ----
 
-function loadSightings() {
+async function loadSightings() {
+    if (useApi) {
+        try {
+            const res = await fetch(API_URL);
+            if (!res.ok) throw new Error('API error');
+            const data = await res.json();
+            // Cache in localStorage
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            return data;
+        } catch {
+            useApi = false;
+            console.warn('API indisponível, usando armazenamento local.');
+        }
+    }
     try {
         const data = localStorage.getItem(STORAGE_KEY);
         return data ? JSON.parse(data) : [];
@@ -24,16 +40,27 @@ function loadSightings() {
     }
 }
 
-function saveSightings(sightings) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sightings));
-}
-
-function addSighting(sighting) {
-    const sightings = loadSightings();
+async function addSighting(sighting) {
+    if (useApi) {
+        try {
+            const res = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(sighting),
+            });
+            if (!res.ok) throw new Error('API error');
+            return await res.json();
+        } catch {
+            useApi = false;
+            console.warn('API indisponível, salvando localmente.');
+        }
+    }
+    // Fallback to localStorage
+    const sightings = await loadSightings();
     sighting.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     sighting.createdAt = new Date().toISOString();
     sightings.unshift(sighting);
-    saveSightings(sightings);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sightings));
     return sighting;
 }
 
@@ -71,9 +98,6 @@ function initMap() {
 
     // Click to add sighting
     map.on('click', onMapClick);
-
-    // Load existing sightings
-    renderSightingsOnMap();
 }
 
 function onMapClick(e) {
@@ -138,12 +162,12 @@ function createSightingIcon(index) {
     });
 }
 
-function renderSightingsOnMap() {
+async function renderSightingsOnMap() {
     // Clear existing markers
     sightingMarkers.forEach(m => map.removeLayer(m));
     sightingMarkers = [];
 
-    const sightings = loadSightings();
+    const sightings = await loadSightings();
 
     sightings.forEach((s, i) => {
         const marker = L.marker([s.lat, s.lng], {
@@ -163,9 +187,9 @@ function renderSightingsOnMap() {
 
 // ---- Clues List ----
 
-function renderCluesList() {
+async function renderCluesList() {
     const container = document.getElementById('clues-list');
-    const sightings = loadSightings();
+    const sightings = await loadSightings();
 
     if (sightings.length === 0) {
         container.innerHTML = '<p class="no-clues">Nenhuma pista registrada ainda. Seja o primeiro a ajudar!</p>';
@@ -199,8 +223,12 @@ function initForm() {
     const form = document.getElementById('clue-form');
     const cancelBtn = document.getElementById('cancel-sighting');
 
-    form.addEventListener('submit', function(e) {
+    form.addEventListener('submit', async function(e) {
         e.preventDefault();
+
+        const submitBtn = form.querySelector('.btn-primary');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Enviando...';
 
         const sighting = {
             name: document.getElementById('reporter-name').value.trim(),
@@ -211,7 +239,7 @@ function initForm() {
             lng: parseFloat(document.getElementById('sighting-lng').value)
         };
 
-        addSighting(sighting);
+        await addSighting(sighting);
 
         // Clear temp marker
         if (tempMarker) {
@@ -220,12 +248,14 @@ function initForm() {
         }
 
         // Reset form
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Enviar Pista';
         form.reset();
         document.getElementById('sighting-form').classList.add('hidden');
 
         // Re-render
-        renderSightingsOnMap();
-        renderCluesList();
+        await renderSightingsOnMap();
+        await renderCluesList();
 
         // Show confirmation
         showToast('Pista registrada com sucesso! Obrigado por ajudar!');
@@ -284,7 +314,7 @@ function formatDate(dateStr, timeStr) {
     return result;
 }
 
-// ---- Cross-tab sync ----
+// ---- Cross-tab sync (fallback for same browser) ----
 
 window.addEventListener('storage', function(e) {
     if (e.key === STORAGE_KEY) {
@@ -293,10 +323,20 @@ window.addEventListener('storage', function(e) {
     }
 });
 
+// ---- Auto-refresh (poll for new sightings from other devices) ----
+
+setInterval(async () => {
+    if (useApi) {
+        await renderSightingsOnMap();
+        await renderCluesList();
+    }
+}, 30000); // Refresh every 30 seconds
+
 // ---- Init ----
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     initMap();
     initForm();
-    renderCluesList();
+    await renderSightingsOnMap();
+    await renderCluesList();
 });
