@@ -183,7 +183,36 @@ function showToast(message) {
 
 // ---- Init ----
 
+function launchConfetti() {
+    const duration = 4000;
+    const end = Date.now() + duration;
+
+    const colors = ['#4caf50', '#ffeb3b', '#2196f3', '#ff5722', '#e91e63', '#ffffff'];
+
+    (function frame() {
+        confetti({
+            particleCount: 6,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0 },
+            colors: colors
+        });
+        confetti({
+            particleCount: 6,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1 },
+            colors: colors
+        });
+
+        if (Date.now() < end) {
+            requestAnimationFrame(frame);
+        }
+    })();
+}
+
 document.addEventListener('DOMContentLoaded', async function() {
+    launchConfetti();
     initMap();
     await renderSightingsOnMap();
     await renderCluesList();
